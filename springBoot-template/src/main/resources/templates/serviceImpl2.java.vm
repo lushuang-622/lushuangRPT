@@ -1,0 +1,74 @@
+package ${package.ServiceImpl};
+
+import ${package.Entity}.${entity};
+import ${package.Mapper}.${table.mapperName};
+import ${package.Service}.${table.serviceName};
+import ${superServiceImplClassPackage};
+import javax.annotation.Resource;
+import org.springframework.stereotype.Service;
+import com.baomidou.dynamic.datasource.annotation.DS;
+
+import ${cfg.packageParent}.common.lang.PageHandler;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+
+import java.util.Map;
+
+/**
+ * <p>
+ * $!{table.comment} 服务实现类
+ * </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+@Service
+@DS("master")
+#if(${kotlin})
+open class ${table.serviceImplName} : ${superServiceImplClass}<${table.mapperName}, ${entity}>(), ${table.serviceName} {
+
+}
+#else
+public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.mapperName}, ${entity}> implements ${table.serviceName} {
+
+    private static final String ORDER_STR = "desc";
+
+    @Resource
+    ${table.mapperName} entityDao;
+
+    @Override
+    public Integer findCount(PageHandler pageHandler, Map<String, Object> map) {
+        QueryWrapper<${entity}> query = new QueryWrapper<>();
+        query.allEq(pageHandler.getQueryMap());
+        if(pageHandler.getLikeMap() != null){
+            pageHandler.getLikeMap().forEach((key, value) -> {
+            query.and(wrapper -> wrapper.like(key,value));
+        });
+        }
+        return entityDao.selectCount(query);
+    }
+
+
+    @Override
+    public IPage<${entity}> findByPage(PageHandler pageHandler, Map<String, Object> map) {
+        Page<${entity}> page = new Page<>(pageHandler.getLimit(), pageHandler.getSize());
+        QueryWrapper<${entity}> query = new QueryWrapper<>();
+        query.allEq(pageHandler.getQueryMap());
+        if(pageHandler.getLikeMap() != null){
+            pageHandler.getLikeMap().forEach((key, value) -> {
+            query.and(wrapper -> wrapper.like(key,value));
+        });
+        }
+        if (ORDER_STR.equals(pageHandler.getSortName())) {
+            query.orderByDesc(pageHandler.getSortName());
+        } else {
+            query.orderByAsc(pageHandler.getSortName());
+        }
+        IPage<${entity}> pageResult = entityDao.selectPage(page, query);
+        return pageResult;
+    }
+
+
+}
+#end

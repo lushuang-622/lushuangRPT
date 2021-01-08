@@ -1,0 +1,178 @@
+package ${package.Controller};
+
+
+import org.springframework.web.bind.annotation.RequestMapping;
+
+#if(${restControllerStyle})
+import org.springframework.web.bind.annotation.RestController;
+#else
+import org.springframework.stereotype.Controller;
+#end
+#if(${superControllerClassPackage})
+import ${superControllerClassPackage};
+#end
+import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import ${cfg.packageParent}.common.lang.PageHandler;
+import ${cfg.packageParent}.common.lang.ResultInfo;
+import ${cfg.packageParent}.common.lang.Status;
+import ${cfg.packageParent}.common.utils.LocalLogUtils;
+import ${package.Entity}.${entity};
+import ${package.Service}.${table.serviceName};
+
+import org.apache.commons.lang3.StringUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <p>
+ * $!{table.comment} 前端控制器
+ * </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+#if(${restControllerStyle})
+@RestController
+#else
+@Controller
+#end
+@RequestMapping("#if(${package.ModuleName})/${package.ModuleName}#end/#if(${controllerMappingHyphenStyle})${controllerMappingHyphen}#else${table.entityPath}#end")
+#if(${kotlin})
+class ${table.controllerName}#if(${superControllerClass}) : ${superControllerClass}()#end
+
+#else
+#if(${superControllerClass})
+public class ${table.controllerName} extends ${superControllerClass} {
+#else
+public class ${table.controllerName} {
+#end
+    @Autowired
+    private ${table.serviceName} entityService;
+
+    /**
+    * 增加修改
+    */
+    @PostMapping("/edit")
+    public Object edit(${entity} entity) {
+        ResultInfo result = null;
+        boolean save = false;
+        if (entity.getId() == null) {
+            save = entityService.save(entity);
+            LocalLogUtils.info(entity.getClass() + "edit save success");
+        } else {
+            save = entityService.updateById(entity);
+            LocalLogUtils.info(entity.getClass() + "edit update success");
+        }
+        if (save) {
+            result = new ResultInfo(Status.SUCCESS);
+        } else {
+            result = new ResultInfo(Status.WARN);
+            result.message("保存或者更新数据失败！");
+        }
+        return result;
+    }
+    /**
+     * 删除
+     */
+    @PostMapping("/deleteById")
+    public Object delete(@RequestParam(name = "id") Long id) {
+        if(id != null){
+            boolean b = entityService.removeById(id);
+            if (b) {
+                LocalLogUtils.info("MonitorPlate对象" + id + "deleteById delete success");
+                return new ResultInfo(Status.SUCCESS);
+            } else {
+                LocalLogUtils.info("MonitorPlate对象" + id + "deleteById delete fail");
+                return new ResultInfo(Status.WARN);
+            }
+        }else{
+            return new ResultInfo(Status.REQUEST_PARAMETER_ERROR);
+        }
+    }
+
+    /**
+     * 删除
+     */
+    @PostMapping("/deleteByIds")
+    public Object delete(@RequestParam(name = "ids") String ids) {
+        if(StringUtils.isNotEmpty(ids)){
+            List<String> idsArr = Arrays.asList(ids.split(","));
+            List<Integer> idList = new ArrayList<>();
+            idsArr.forEach(s -> {
+                idList.add(Integer.valueOf(s));
+            });
+            boolean b = entityService.removeByIds(idList);
+            if (b) {
+                LocalLogUtils.info("${entity}" + ids + "deleteByIds delete success");
+                return new ResultInfo(Status.SUCCESS);
+            } else {
+                LocalLogUtils.info("${entity}" + ids + "deleteByIds delete fail");
+            return new ResultInfo(Status.WARN);
+        }
+        }else{
+            return new ResultInfo(Status.REQUEST_PARAMETER_ERROR);
+        }
+
+
+
+    }
+
+    /**
+     * 根据id删除
+     */
+    @PostMapping("/findById")
+    public Object findById(@RequestParam(name = "id") Long id) {
+        ResultInfo result = null;
+        if (id == null) {
+            result = new ResultInfo(Status.WARN);
+            result.message("缺失主键id");
+        } else {
+            ${entity} obj = entityService.getById(id);
+            result = new ResultInfo(Status.SUCCESS);
+            result.total(1);
+            result.result(obj);
+        }
+        return result;
+    }
+
+    /**
+     * 分页查询信息。
+     * limit 页面 （0~100...） 默认 0。
+     * size 没有条数 默认10。
+     * sortName 排序查询的字段 默认 id。
+     * sortOrder 排序的顺序类型 （desc/asc） 默认 desc。
+     * 以“L_”开头的字段封装到 likeMap中执行模糊查询。
+     * 以“lt_”开头的字段表示匹配 “<”,类型为Long类型。
+     * 以“lteq_”开头的字段表示匹配 “<=”,类型为Long类型。
+     * 以“gt_”开头的字段表示匹配 “>”,类型为Long类型。
+     * 以“gteq_”开头的字段表示匹配 “<=”,类型为Long类型。
+     * 以“st_”开头的字段表示匹配 “start_time”,类型为date类型,格式为 “yyyyMMdd-HH:mm:ss”。
+     * 以“et_”开头的字段表示匹配 “end_time”,类型为date类型,格式为 “yyyyMMdd-HH:mm:ss”。
+     * 以“ct_”开头的字段表示匹配 “create_time”,类型为date类型,格式为 “yyyyMMdd-HH:mm:ss”。
+     * 以“ut_”开头的字段表示匹配 “update_time”,类型为date类型,格式为 “yyyyMMdd-HH:mm:ss”。
+     * 剩余可以传递的属于MonitorPlate实体的数据封装到querryMap中执行完全匹配查询"。
+     */
+    @PostMapping("/findByPage")
+    public Object findByPage(@RequestParam Map<String, Object> map) {
+        PageHandler pageHandler = new PageHandler(map);
+        Integer total = entityService.findCount(pageHandler, map);
+        IPage<${entity}> datas = entityService.findByPage(pageHandler, map);
+        ResultInfo result = null;
+        if (total > 0) {
+            result = new ResultInfo(Status.SUCCESS);
+            result.total(total);
+            result.result(datas);
+        } else {
+            result = new ResultInfo(Status.WARN);
+            result.result("未查询到数据！");
+        }
+        return result;
+    }
+
+}
+
+#end
